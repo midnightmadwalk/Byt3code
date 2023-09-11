@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Code Lookup</title>
+</head>
+<body>
+    <div class="container">
+        <h1>Contract Code Lookup</h1>
+        <label for="contractAddress">Enter Contract Address:</label>
+        <input type="text" id="contractAddress" placeholder="Enter contract address">
+        <button onclick="lookupContractCode()">Lookup</button>
+        <button onclick="copyBytecodeToClipboard()">Copy</button>
+        <div id="response"></div>
+    </div>
+
+    <script>
+        let bytecode = '';
+
+        function lookupContractCode() {
+            const contractAddress = document.getElementById('contractAddress').value;
+            const apiUrl = 'https://rpc.pulsechain.com';
+
+            const requestData = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'eth_getCode',
+                params: [contractAddress, 'latest']
+            };
+
+            fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                const responseDiv = document.getElementById('response');
+                if (data && data.result) {
+                    bytecode = data.result;
+                    const resultLines = bytecode.match(/.{1,80}/g); // Split into lines of 80 characters
+                    if (resultLines) {
+                        const formattedResult = resultLines.join('<br>');
+                        responseDiv.innerHTML = `<pre>${formattedResult}</pre>`;
+                    } else {
+                        responseDiv.innerHTML = 'No result found.';
+                    }
+                } else {
+                    responseDiv.innerHTML = 'No result found.';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function copyBytecodeToClipboard() {
+            const textarea = document.createElement('textarea');
+            textarea.value = bytecode;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('Bytecode copied to clipboard');
+        }
+    </script>
+</body>
+</html>
