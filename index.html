@@ -4,22 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contract Code Lookup</title>
+    <style>
+        #contractAddress {
+            width: 350px; /* Adjust the width as needed */
+            padding: 2px; /* Add padding for better appearance */
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>Contract Code Lookup</h1>
         <label for="contractAddress">Enter Contract Address:</label>
         <input type="text" id="contractAddress" placeholder="Enter contract address">
-        <button onclick="lookupContractCode()">Lookup</button>
-        <button onclick="copyBytecodeToClipboard()">Copy</button>
+        <button onclick="lookupContractCode()">RAW BYTECODE</button>
+
+
+        <button onclick="copyBytecodeToClipboard()">COPY</button>
+        <button onclick="getResponse()">DECODE BYTECODE</button>
         <div id="response"></div>
     </div>
 
     <script>
+        // Load the contract address from local storage when the page loads
+        document.addEventListener("DOMContentLoaded", function () {
+            const storedContractAddress = localStorage.getItem("contractAddress");
+            if (storedContractAddress) {
+                document.getElementById('contractAddress').value = storedContractAddress;
+            }
+        });
+
         let bytecode = '';
 
         function lookupContractCode() {
             const contractAddress = document.getElementById('contractAddress').value;
+            // Save the entered contract address to local storage
+            localStorage.setItem("contractAddress", contractAddress);
+            
             const apiUrl = 'https://rpc.pulsechain.com';
 
             const requestData = {
@@ -66,6 +86,73 @@
             document.body.removeChild(textarea);
             alert('Bytecode copied to clipboard');
         }
+
+
+        function copyBytecodeToClipboard() {
+            const textarea = document.createElement('textarea');
+            textarea.value = bytecode;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('Bytecode copied to clipboard');
+        }
+
+        function getResponse() {
+    const apiUrl = 'https://api.dedaub.com/api/on_demand/';
+
+    const headers = {
+        'authority': 'api.dedaub.com',
+        'accept': '*/*',
+        'accept-language': 'en-US,en;q=0.9',
+        'content-type': 'application/json',
+        'origin': 'https://library.dedaub.com',
+        'referer': 'https://library.dedaub.com/',
+        'sec-ch-ua': '"Chromium";v="116", "Not)A;Brand";v="24", "Google Chrome";v="116"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-site',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36',
+    };
+
+    const json_data = {
+        'hex_bytecode': bytecode,
+    };
+
+    fetch(apiUrl, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(json_data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        const responseDiv = document.getElementById('response');
+        if (data) {
+            const md5Hash = data;
+            if (md5Hash) {
+                const link = `https://library.dedaub.com/decompile?md5=${md5Hash}`;
+                // Create a button that opens the link in a new tab
+                const openLinkButton = document.createElement('button');
+                openLinkButton.innerText = 'DECODED BYTECODE';
+                openLinkButton.addEventListener('click', () => {
+                    window.open(link, '_blank');
+                });
+                responseDiv.innerHTML = `<pre>MD5 = ${JSON.stringify(data, null, 2)}</pre>`;
+                responseDiv.appendChild(openLinkButton);
+            } else {
+                responseDiv.innerHTML = 'No MD5 hash found.';
+            }
+        } else {
+            responseDiv.innerHTML = 'No result found.';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
     </script>
 </body>
 </html>
